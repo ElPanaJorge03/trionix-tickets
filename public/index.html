@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trionix Labs — Sistema de Tickets</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- ENCABEZADO PRINCIPAL -->
+  <header class="site-header">
+    <h1>Trionix Labs</h1>
+    <p class="site-subtitle">Sistema Interno de Tickets de Soporte</p>
+  </header>
+
+  <main class="container">
+
+    <!-- FORMULARIO DE NUEVO TICKET -->
+    <section class="card form-section" aria-label="Formulario de nuevo ticket">
+
+      <h2>Nuevo Ticket</h2>
+
+      <form id="form-ticket" novalidate>
+
+        <div class="form-group">
+          <label for="campo-cliente">Cliente</label>
+          <input
+            type="text"
+            id="campo-cliente"
+            placeholder="Nombre del cliente"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="campo-asunto">Asunto</label>
+          <textarea
+            id="campo-asunto"
+            rows="3"
+            placeholder="Descripción del problema (mín. 5 caracteres)"
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="campo-prioridad">Prioridad</label>
+          <select id="campo-prioridad">
+            <option value="">-- Seleccione prioridad --</option>
+            <option value="baja">Baja</option>
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+          </select>
+        </div>
+
+        <div id="form-error" class="form-error" role="alert"></div>
+
+        <button type="submit" id="btn-crear" class="btn btn-primary">
+          Crear Ticket
+        </button>
+
+      </form>
+    </section>
+
+    <!-- LISTA DE TICKETS -->
+    <section class="card list-section" aria-label="Lista de tickets">
+
+      <div class="list-header">
+        <h2>Tickets</h2>
+        <span id="ticket-count" class="ticket-count">0 tickets</span>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="filters" aria-label="Filtros de tickets">
+
+        <div class="filter-group">
+          <label for="filtro-estado">Estado</label>
+          <select id="filtro-estado">
+            <option value="todos">Todos</option>
+            <option value="abierto">Abierto</option>
+            <option value="resuelto">Resuelto</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="filtro-prioridad">Prioridad</label>
+          <select id="filtro-prioridad">
+            <option value="todos">Todas</option>
+            <option value="baja">Baja</option>
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+          </select>
+        </div>
+
+        <button id="btn-limpiar-filtros" class="btn btn-secondary">
+          Limpiar filtros
+        </button>
+
+      </div>
+
+      <!-- CONTENEDOR DE TARJETAS -->
+      <div id="lista-tickets" class="lista-tickets">
+        <p class="empty-state">No hay tickets registrados todavía.</p>
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>Trionix Labs © 2026 — Proyecto académico Electiva Web Avanzada</p>
+  </footer>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
