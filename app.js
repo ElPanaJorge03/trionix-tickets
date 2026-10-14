@@ -1,121 +1,77 @@
-// ============================================================
-// app.js — Servidor backend de Trionix Labs
-// ============================================================
+import express from 'express';
+import dotenv from 'dotenv';
+import connectDB from './db.js';
+import ticketsRouter from './routes/tickets.js';
+import agentesRouter from './routes/agentes.js';
 
-const express = require('express');
-const Joi = require('joi');
+dotenv.config();
+
 const app = express();
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 
-// ---------------------------------------------------------------
-// MIDDLEWARE
-// ---------------------------------------------------------------
-
+// Middlewares globales
 app.use(express.json());
 app.use(express.static('public'));
 
-// ---------------------------------------------------------------
-// BASE DE DATOS EN MEMORIA
-// ---------------------------------------------------------------
+// Rutas de la API
+app.use('/api/tickets', ticketsRouter);
+app.use('/api/agentes', agentesRouter);
 
-let tickets = [];
-let nextId = 1;
-
-// ---------------------------------------------------------------
-// ESQUEMA DE VALIDACIÓN CON JOI
-// ---------------------------------------------------------------
-
-const ticketSchema = Joi.object({
-  cliente: Joi.string().required(),
-  asunto: Joi.string().min(5).required(),
-  prioridad: Joi.string().valid('baja', 'media', 'alta').required(),
-  estado: Joi.string().valid('abierto', 'resuelto').optional()
+// Endpoint de verificación de salud
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
 });
 
-// ---------------------------------------------------------------
-// ENDPOINTS DE LA API
-// ---------------------------------------------------------------
-
-// GET /api/tickets
-app.get('/api/tickets', (req, res) => {
-  res.json(tickets);
+// Middleware para manejo de rutas 404 de la API
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'Ruta no encontrada en la API de Trionix' });
 });
 
-// GET /api/tickets/:id
-app.get('/api/tickets/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const ticket = tickets.find(t => t.id === id);
+// Middleware global de manejo de errores
+app.use((err, req, res, next) => {
+  console.error('Error no controlado:', err);
 
-  if (!ticket) {
-    return res.status(404).json({ error: 'Ticket no encontrado' });
+  // Manejo de error de índice único en MongoDB (código 11000)
+  if (err.code === 11000) {
+    const campo = Object.keys(err.keyValue || {})[0] || 'campo';
+    return res.status(400).json({
+      error: `Violación de índice único: ya existe un registro con el valor ingresado en '${campo}'.`,
+    });
   }
 
-  res.json(ticket);
-});
-
-// POST /api/tickets
-app.post('/api/tickets', (req, res) => {
-  const { error, value } = ticketSchema.validate(req.body);
-
-  if (error) {
-    return res.status(400).json({ error: error.details[0].message });
+  // Manejo de ValidationError de Mongoose
+  if (err.name === 'ValidationError') {
+    const mensajes = Object.values(err.errors).map((e) => e.message);
+    return res.status(400).json({ error: mensajes.join('. ') });
   }
 
-  const nuevoTicket = {
-    id: nextId++,
-    cliente: value.cliente,
-    asunto: value.asunto,
-    prioridad: value.prioridad,
-    estado: 'abierto'
-  };
-
-  tickets.push(nuevoTicket);
-  res.status(201).json(nuevoTicket);
-});
-
-// PUT /api/tickets/:id
-app.put('/api/tickets/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = tickets.findIndex(t => t.id === id);
-
-  if (index === -1) {
-    return res.status(404).json({ error: 'Ticket no encontrado' });
+  // Manejo de CastError de ObjectId
+  if (err.name === 'CastError') {
+    return res.status(400).json({ error: 'Identificador con formato no válido' });
   }
 
-  const { error, value } = ticketSchema.validate(req.body);
-
-  if (error) {
-    return res.status(400).json({ error: error.details[0].message });
-  }
-
-  tickets[index] = {
-    id: tickets[index].id,
-    cliente: value.cliente,
-    asunto: value.asunto,
-    prioridad: value.prioridad,
-    estado: value.estado || tickets[index].estado
-  };
-
-  res.json(tickets[index]);
+  // Error genérico del servidor
+  res.status(500).json({
+    error: 'Error interno del servidor. Por favor inténtelo más tarde.',
+  });
 });
 
-// DELETE /api/tickets/:id
-app.delete('/api/tickets/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = tickets.findIndex(t => t.id === id);
+// Conectar a MongoDB antes de levantar el servidor Express
+const startServer = async () => {
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`=========================================`);
+    console.log(` Servidor Trionix Tickets & Agentes`);
+    console.log(` Escuchando en el puerto: ${PORT}`);
+    console.log(` Entorno: ${process.env.NODE_ENV || 'desarrollo'}`);
+    console.log(`=========================================`);
+  });
+};
 
-  if (index === -1) {
-    return res.status(404).json({ error: 'Ticket no encontrado' });
-  }
+startServer();
 
-  tickets.splice(index, 1);
-  res.status(204).send();
-});
-
-// ---------------------------------------------------------------
-// INICIO DEL SERVIDOR
-// ---------------------------------------------------------------
-
-app.listen(PORT, () => {
-  console.log(`Servidor Trionix corriendo en http://localhost:${PORT}`);
-});
+export default app;
